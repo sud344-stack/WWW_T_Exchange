@@ -1,7 +1,6 @@
 use crate::models::Order;
 use crate::AppState;
-use sqlx::{PgPool, Row};
-use std::sync::Arc;
+use bigdecimal::{BigDecimal, FromPrimitive};
 use tokio::time::{interval, Duration};
 use tracing::{error, info};
 
@@ -43,7 +42,8 @@ impl MatchingEngine {
             
             // Get current price from our DashMap (Binance feed)
             if let Some(current_price_ref) = self.state.market_data.prices.get(&symbol) {
-                let current_price = *current_price_ref;
+                let current_price_f64 = *current_price_ref;
+                let current_price = BigDecimal::from_f64(current_price_f64).unwrap_or_default();
                 let mut should_execute = false;
 
                 // Match logic
@@ -59,7 +59,7 @@ impl MatchingEngine {
 
                 if should_execute {
                     // Execute trade (Transaction)
-                    self.execute_trade(&order, current_price).await?;
+                    self.execute_trade(&order, current_price_f64).await?;
                 }
             }
         }
@@ -85,9 +85,9 @@ impl MatchingEngine {
         // If they are selling, subtract from their balance
         
         let quantity_change = if order.side == "BUY" {
-            order.quantity
+            order.quantity.clone()
         } else {
-            -order.quantity
+            -order.quantity.clone()
         };
 
         sqlx::query(
@@ -101,17 +101,18 @@ impl MatchingEngine {
         .bind(uuid::Uuid::new_v4())
         .bind(order.user_id)
         .bind(&order.asset)
-        .bind(quantity_change as f64)
+        .bind(&quantity_change)
         .execute(&mut *tx)
         .await?;
 
         // 3. Update USDT balance
         // Buy: lose USDT = execute_price * quantity
         // Sell: gain USDT = execute_price * quantity
+        let execute_price_bd = BigDecimal::from_f64(execute_price).unwrap_or_default();
         let usdt_change = if order.side == "BUY" {
-            -(execute_price * order.quantity)
+            -(execute_price_bd * order.quantity.clone())
         } else {
-            execute_price * order.quantity
+            execute_price_bd * order.quantity.clone()
         };
 
         sqlx::query(
@@ -124,7 +125,7 @@ impl MatchingEngine {
         )
         .bind(uuid::Uuid::new_v4())
         .bind(order.user_id)
-        .bind(usdt_change as f64)
+        .bind(&usdt_change)
         .execute(&mut *tx)
         .await?;
 

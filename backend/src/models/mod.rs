@@ -2,6 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+#[allow(dead_code)]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct User {
     pub id: Uuid,
@@ -15,7 +16,7 @@ pub struct Portfolio {
     pub id: Uuid,
     pub user_id: Uuid,
     pub asset: String,
-    pub balance: f64,
+    pub balance: sqlx::types::BigDecimal,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
 }
@@ -28,15 +29,16 @@ pub struct Order {
     pub asset: String,
     pub side: String,
     pub order_type: String,
-    pub price: f64,
-    pub quantity: f64,
+    pub price: sqlx::types::BigDecimal,
+    pub quantity: sqlx::types::BigDecimal,
     pub status: String,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TickerData {
     pub symbol: String,
-    pub price: f64,
+    pub price: sqlx::types::BigDecimal,
 }

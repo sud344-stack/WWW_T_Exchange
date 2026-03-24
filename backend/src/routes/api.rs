@@ -1,4 +1,4 @@
-use crate::models::{Order, Portfolio, User};
+use crate::models::Portfolio;
 use crate::AppState;
 use axum::{
     extract::{Path, State},
@@ -8,6 +8,7 @@ use axum::{
 };
 use serde::Deserialize;
 use uuid::Uuid;
+use bigdecimal::{BigDecimal, FromPrimitive};
 
 #[derive(Deserialize)]
 pub struct CreateUserPayload {
@@ -37,11 +38,12 @@ pub async fn create_user(
             let _ = sqlx::query(
                 r#"
                 INSERT INTO portfolios (id, user_id, asset, balance)
-                VALUES ($1, $2, 'USDT', 10000.0)
+                VALUES ($1, $2, 'USDT', $3)
                 "#
             )
             .bind(Uuid::new_v4())
             .bind(id)
+            .bind(BigDecimal::from_f64(10000.0).unwrap_or_default())
             .execute(&*state.db)
             .await;
 
@@ -102,8 +104,8 @@ pub async fn create_order(
     .bind(payload.asset)
     .bind(payload.side)
     .bind(payload.order_type)
-    .bind(payload.price)
-    .bind(payload.quantity)
+    .bind(BigDecimal::from_f64(payload.price).unwrap_or_default())
+    .bind(BigDecimal::from_f64(payload.quantity).unwrap_or_default())
     .execute(&*state.db)
     .await;
 
