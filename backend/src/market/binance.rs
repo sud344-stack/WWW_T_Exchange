@@ -1,5 +1,5 @@
 use dashmap::DashMap;
-use futures_util::{StreamExt, SinkExt};
+use futures_util::StreamExt;
 use serde::Deserialize;
 use std::sync::Arc;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
@@ -30,7 +30,7 @@ impl MarketData {
         // Binance specific stream. We use lowercase as required by binance wss
         // Coins: BTC, XRP, BNB, ETH, SOL, POL, XMR, ZCASH, PEPE
         let streams = "btcusdt@ticker/xrpusdt@ticker/bnbusdt@ticker/ethusdt@ticker/solusdt@ticker/polusdt@ticker/xmrusdt@ticker/zecusdt@ticker/pepeusdt@ticker";
-        let url = format!("wss://stream.binance.com:9443/ws/{}", streams);
+        let url = format!("wss://data-stream.binance.vision:9443/ws/{}", streams);
 
         tokio::spawn(async move {
             loop {
